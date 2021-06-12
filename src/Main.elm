@@ -1,9 +1,10 @@
 module Main exposing (..)
 
 import Browser
-import Browser.Events exposing (..)
+import Browser.Events as Events
 import Html exposing (Html)
 import Html.Events exposing (..)
+import Json.Decode as D
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -17,6 +18,7 @@ type alias Model =
 type Msg
     = Tick Float
     | RandomBalls (List Ball)
+    | ClickOut
 
 
 type alias Ball =
@@ -50,13 +52,22 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     ( { balls = []
       }
-    , Random.generate RandomBalls (randomBalls 1000)
+    , Random.generate RandomBalls (randomBalls 500)
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ClickOut ->
+            let
+                _ =
+                    Debug.log "move" ()
+            in
+            ( model
+            , Cmd.none
+            )
+
         Tick _ ->
             ( { model
                 | balls =
@@ -92,13 +103,16 @@ view model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
-    onAnimationFrameDelta Tick
+subscriptions _ =
+    Sub.batch
+        [ Events.onAnimationFrameDelta Tick
+        , Events.onMouseMove (D.succeed ClickOut)
+        ]
 
 
 field : { w : Float, h : Float }
 field =
-    { w = 700, h = 300 }
+    { w = 400, h = 300 }
 
 
 randomBall : Random.Generator Ball
