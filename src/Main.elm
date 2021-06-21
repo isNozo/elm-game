@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Browser.Events as Events
-import Html exposing (Html)
+import Html exposing (Html, div)
 import Html.Events exposing (..)
 import Json.Decode as D
 import Random
@@ -18,7 +18,7 @@ type alias Model =
 type Msg
     = Tick Float
     | RandomBalls (List Ball)
-    | ClickOut
+    | MouseMove Float Float
 
 
 type alias Ball =
@@ -59,12 +59,29 @@ init _ =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ClickOut ->
+        MouseMove mousex mousey ->
             let
                 _ =
-                    Debug.log "move" ()
+                    Debug.log "move" ( mousex, mousey )
+
+                newballs =
+                    case model.balls of
+                        [] ->
+                            []
+
+                        b :: bs ->
+                            { b
+                                | x = mousex
+                                , y = mousey
+                                , dx = 0
+                                , dy = 0
+                                , r = 10
+                            }
+                                :: bs
             in
-            ( model
+            ( { model
+                | balls = newballs
+              }
             , Cmd.none
             )
 
@@ -94,25 +111,32 @@ view model =
         fh =
             String.fromFloat field.h
     in
-    svg
-        [ width fw
-        , height fh
-        , viewBox ("0 0 " ++ fw ++ " " ++ fh)
+    div
+        [ on "mousemove"
+            (D.map2
+                MouseMove
+                (D.field "clientX" D.float)
+                (D.field "clientY" D.float)
+            )
         ]
-        (List.map drawBall model.balls)
+        [ svg
+            [ width fw
+            , height fh
+            , viewBox ("0 0 " ++ fw ++ " " ++ fh)
+            ]
+            (List.map drawBall model.balls)
+        ]
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Events.onAnimationFrameDelta Tick
-        , Events.onMouseMove (D.succeed ClickOut)
-        ]
+        [ Events.onAnimationFrameDelta Tick ]
 
 
 field : { w : Float, h : Float }
 field =
-    { w = 400, h = 300 }
+    { w = 600, h = 400 }
 
 
 randomBall : Random.Generator Ball
